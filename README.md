@@ -1,4 +1,4 @@
-# book-rest-api
+# express-rest-api
 Simple single file REST-API using:
 - [ExpressJS](https://expressjs.com) For basic routing handler
 - [Sequelize](http://docs.sequelizejs.com) for Databases (MySQL) ORM
