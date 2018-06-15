@@ -40,13 +40,13 @@ Get all books
 `GET /book/<isbn>`
 Get book by ISBN
 
-`POST /book/`
+`POST /book/add`
 Add new book into collection
 
-`PUT /book/`
+`POST /book/:isbn/update`
 Update existing book
 
-`DELETE /book/<isbn>`
+`POST /book/<isbn>`
 Delete book by ISBN
 
 ---
