@@ -76,7 +76,22 @@ const book = sequelize.define('book', {
 }, {
     //prevent sequelize transform table name into plural
     freezeTableName: true,
-})
+});
+
+const pinjam = sequelize.define('peminjaman', {
+    'id': {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    'bookId': Sequelize.INTEGER,
+    'nama': Sequelize.STRING,
+    'lamaPinjam': Sequelize.INTEGER,
+    'tanggalPinjam': Sequelize.STRING
+}, {
+    //prevent sequelize transform table name into plural
+    freezeTableName: true,
+});
 
 /**
  * Set Routes for CRUD
@@ -214,9 +229,10 @@ app.post('/book/:isbn/update', [
                     "data": b
                 })
             })
-        })
-    
+        })    
 })
+
+
 
 app.post('/book/:isbn/delete',[
     //Set form validation rule
@@ -252,6 +268,44 @@ app.post('/book/:isbn/delete',[
         .then(r => {
             res.json(r)
         })
+})
+
+app.get('/pinjam', (req, res) => {
+    const sql = "SELECT peminjaman.id, bookId, name as title, nama, lamaPinjam, tanggalPinjam "+
+                "FROM  peminjaman JOIN book on peminjaman.bookId = book.id ";
+    sequelize.query(sql, {
+        type: sequelize.QueryTypes.SELECT
+    }).then(book => {
+        res.json(book);
+    })
+})
+
+app.post('/pinjam',[
+    upload.single('image'),
+    //Set form validation rule
+    check('bookId')
+        .isNumeric(),
+    check('nama')
+        .isLength({min: 2}),
+    check('lamaPinjam')
+        .isNumeric()    
+], (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(200).json({ status: 'error', message:"Form error", data:null, errors: errors.mapped() });
+    }
+
+    pinjam.create({
+        nama: req.body.nama,
+        bookId: req.body.bookId,
+        lamaPinjam: req.body.lamaPinjam        
+    }).then(newBook => {
+        res.json({
+            "status":"success",
+            "message":"Book added",
+            "data": newBook
+        })
+    })
 })
 
 
