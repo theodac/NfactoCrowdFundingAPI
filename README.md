@@ -1,25 +1,25 @@
-# express-rest-api
-Simple single file REST-API using:
-- [ExpressJS](https://expressjs.com) For basic routing handler
-- [Sequelize](http://docs.sequelizejs.com) for Databases (MySQL) ORM
-- [body-parser](https://github.com/expressjs/body-parser) for HTTP POST method handler
-- [multer](https://github.com/expressjs/multer) for multipart-form and file upload handling
-- MySQL database
+# nfacto-crowd-funding-api
+Les éléments suivants sont utilisé dans ce projet:
+- [ExpressJS](https://expressjs.com) Pour le routing
+- [Sequelize](http://docs.sequelizejs.com) ORM pour les bases de données
+- [body-parser](https://github.com/expressjs/body-parser) pour gerez les retour HTTP post
+- [multer](https://github.com/expressjs/multer) Pour l'upload de fichier 
+- base de donnée MYSQL
 ---
-### Install
-Make sure you have installed [NodeJS](https://nodejs.org/) and MySQL server on your local machine.
+### Installation
+Soyez sur d'avoir installé [NodeJS](https://nodejs.org/) et de possédez MYSQL sur votre machine
 
-1. Clone this repo to your local machine
-2. Create new database using MySQL database. Grab **bookstore.sql** included in this repo and import into your MySQL server.
-3. `cd` to your local repo directory and run `npm install` using Terminal or Windows PowerShell
-4. Please look into lines bellow and configure your database and port:
+1. Cloner ce repertoire sur votre machine
+2. Crée une nouvelle base de données MYSQL . Récuper le fichier sql et importer le dans votre base de données mysql.
+3. `cd` vers votre repertoire local et lancer `npm install` en utilisant un terminal
+4. Suivez les indications suivantes pour configurer votre base de données et votre port
 ```javascript
 //Set app config
 const port = 3000;
 const baseUrl = 'http://localhost:'+port;
 
 //Connect to database
-const sequelize = new Sequelize('bookstore', 'root', 'yourpassword', {
+const sequelize = new Sequelize('androidproject', 'root', 'yourpassword', {
     host: 'localhost',
     dialect: 'mysql',
     pool: {
@@ -29,26 +29,14 @@ const sequelize = new Sequelize('bookstore', 'root', 'yourpassword', {
     }
 });
 ```
-5. Run `node index.js` to start the server
+
+Puis lancer la commande `node index.js` pour démarrez le serveur
+
 ---
 
 
 ### Routes
-`GET /book/`
-Get all books
+`GET /project/`
+Récuperer tous les projets
 
-`GET /book/<isbn>`
-Get book by ISBN
 
-`POST /book/add`
-Add new book into collection
-
-`POST /book/:isbn/update`
-Update existing book
-
-`POST /book/<isbn>`
-Delete book by ISBN
-
----
-### Test
-You can get [Postman](https://www.getpostman.com/) collections of this REST-API [here](https://www.getpostman.com/collections/d07bc76008eb2d618c6f)
