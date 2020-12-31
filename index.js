@@ -8,6 +8,8 @@ const { matchedData, sanitize } = require('express-validator/filter'); //sanitiz
 const multer  = require('multer'); //multipar form-data
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+var multiparty = require('multiparty');
 
 //Set body parser for HTTP post operation
 app.use(bodyParser.json()); // support json encoded bodies
@@ -34,8 +36,9 @@ const port = 3000;
 const baseUrl = 'http://localhost:'+port;
 
 //Connect to database
-const sequelize = new Sequelize('bookstore', 'root', '', {
+const sequelize = new Sequelize('androidproject', 'root', '123456', {
     host: 'localhost',
+    port: 3306,
     dialect: 'mysql',
     pool: {
         max: 5,
@@ -45,49 +48,82 @@ const sequelize = new Sequelize('bookstore', 'root', '', {
 });
 
 //Define models
-const book = sequelize.define('book', {
+const project = sequelize.define('project', {
     'id': {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    'isbn': Sequelize.STRING,
-    'name': Sequelize.STRING,
-    'year': Sequelize.STRING,
-    'author': Sequelize.STRING,
-    'description': Sequelize.TEXT,
-    'image': {
+    'id_user': Sequelize.INTEGER,
+    'title': Sequelize.STRING,
+    'description': Sequelize.STRING,
+    'montant': Sequelize.INTEGER,
+    'end_date': Sequelize.DATE,
+    'picture': {
         type: Sequelize.STRING,
-        //Set custom getter for book image using URL
+        //Set custom getter for project image using URL
         get(){
-            const image = this.getDataValue('image');
+            const image = this.getDataValue('picture');
             return uploadDir+image;
         }
     },
     'createdAt': {
         type: Sequelize.DATE,
         defaultValue: Sequelize.NOW
-    },    
+    },
     'updatedAt': {
         type: Sequelize.DATE,
         defaultValue: Sequelize.NOW
-    },   
+    },
     
 }, {
     //prevent sequelize transform table name into plural
     freezeTableName: true,
 });
 
-const pinjam = sequelize.define('peminjaman', {
+const user = sequelize.define('user', {
     'id': {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    'bookId': Sequelize.INTEGER,
-    'nama': Sequelize.STRING,
-    'lamaPinjam': Sequelize.INTEGER,
-    'tanggalPinjam': Sequelize.STRING
+    'email': Sequelize.STRING,
+    'password': Sequelize.STRING,
+    'pseudo': Sequelize.STRING,
+    'birthdate': Sequelize.DATE,
+    'createdAt': {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW
+    },
+    'updatedAt': {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW
+    },
+
+}, {
+    //prevent sequelize transform table name into plural
+    freezeTableName: true,
+});
+
+
+const dons = sequelize.define('dons', {
+    'User_id':  {
+        type: Sequelize.INTEGER,
+        primaryKey: true
+    },
+    'Project_id': {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+    },
+    'montant': Sequelize.INTEGER,
+    'createdAt': {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW
+    },
+    'updatedAt': {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW
+    },
 }, {
     //prevent sequelize transform table name into plural
     freezeTableName: true,
@@ -97,46 +133,35 @@ const pinjam = sequelize.define('peminjaman', {
  * Set Routes for CRUD
  */
 
-//get all books
-app.get('/book/', (req, res) => {
-    book.findAll().then(book => {
-        res.json(book)
+//get all projects
+app.get('/project/', (req, res) => {
+    project.findAll().then(project => {
+        res.json(project)
     })
 })
 
+
 //get book by isbn
 app.get('/book/:isbn', (req, res) => {
+    console.log('ok')
     book.findOne({where: {isbn: req.params.isbn}}).then(book => {
         res.json(book)
     })
 })
 
 //Insert operation
-app.post('/book/add', [
+app.post('/project/add', [
     //File upload (karena pakai multer, tempatkan di posisi pertama agar membaca multipar form-data)
     upload.single('image'),
 
     //Set form validation rule
-    check('isbn')
-        .isLength({ min: 5 })
-        .isNumeric()
-        .custom(value => {
-            return book.findOne({where: {isbn: value}}).then(b => {
-                if(b){
-                    throw new Error('ISBN already in use');
-                }            
-            })
-        }
+    check('title')
+        .isLength({ min: 5 }
+
     ),
-    check('name')
-        .isLength({min: 2}),
-    check('year')
-        .isLength({min: 4, max: 4})
+    check('montant')
         .isNumeric(),
-    check('author')
-        .isLength({min: 2}),
-    check('description')
-     .isLength({min: 10})
+
 
 ],(req, res) => {
     const errors = validationResult(req);
@@ -144,17 +169,17 @@ app.post('/book/add', [
         return res.status(200).json({ status: 'error', message:"Form error", data:null, errors: errors.mapped() });
     }
 
-    book.create({
-        name: req.body.name,
-        isbn: req.body.isbn,
-        year: req.body.year,
-        author: req.body.author,
+    project.create({
+        title: req.body.title,
+        montant: req.body.montant,
+        end_date: req.body.end_date,
+        id_user: req.body.id_user,
         description: req.body.description,
-        image: req.file === undefined ? "" : req.file.filename
+        picture: req.file === undefined ? "" : req.file.filename
     }).then(newBook => {
         res.json({
             "status":"success",
-            "message":"Book added",
+            "message":"Project added",
             "data": newBook
         })
     })
@@ -271,13 +296,44 @@ app.post('/book/:isbn/delete',[
 })
 
 app.get('/pinjam', (req, res) => {
-    const sql = "SELECT peminjaman.id, bookId, name as title, nama, lamaPinjam, tanggalPinjam "+
-                "FROM  peminjaman JOIN book on peminjaman.bookId = book.id ";
+    const sql = "SELECT Project_id, SUM(montant) as TOTAL_COSTS FROM dons WHERE Project_id = 2 GROUP BY Project_id";
     sequelize.query(sql, {
         type: sequelize.QueryTypes.SELECT
     }).then(book => {
         res.json(book);
     })
+})
+
+app.post('/register',express.static('public'),(req,res) => {
+    console.log('ok',req.body.password,req.body.email,req.body.pseudo,req.body.birthdate);
+    console.log(req.body);
+    var form = new multiparty.Form();
+    form.parse(req, function(err, fields, files) {
+        console.log(fields);
+        var password ;
+        bcrypt.genSalt(10, (err, salt) => {
+            bcrypt.hash(fields.password[0], salt, (err, hash) => {
+                console.log(err);
+                if (err) throw err;
+                password = hash;
+                user.create({
+                    email: fields.username[0],
+                    password: password,
+                    pseudo:fields.pseudo[0],
+                    birthdate: fields.birthday[0]
+                }).then(newBook => {
+                    res.json({
+                        "status":"success",
+                        "message":"Project added",
+                        "data": newBook
+                    })
+                })
+            })
+        });
+        // fields fields fields
+    });
+
+
 })
 
 app.post('/pinjam',[
@@ -308,5 +364,65 @@ app.post('/pinjam',[
     })
 })
 
+app.post('/login',(req,res) => {
+    var form = new multiparty.Form();
+    form.parse(req, function(err, fields, files) {
+        user.findOne({where: {email: fields.username[0]}}).then(book => {
+            console.log(book.password);
+            bcrypt.compare(fields.password[0], book.password)
+                .then(function (result) {
+                    console.log(result);
+                    if(result  === true) {
+                        console.log('ici');
+                        res.json({
+                            "status":"success",
+                            "message":"Project added",
+                            "data": book
+                        })
+
+                    } else {
+                        return res.json({"status":"false",
+                            "message":"Error",});
+                    }
+                })
+
+
+        })
+        // fields fields fields
+    });
+
+
+});
+
+app.post('/dons',(req,res) => {
+    var form = new multiparty.Form();
+    form.parse(req, function(err, fields, files) {
+        console.log(fields)
+        dons.create({
+            User_id: parseInt(fields.user_id[0]),
+            Project_id: parseInt(fields.project_id[0]),
+            montant: parseInt(fields.montant[0]),
+        }).then(newBook => {
+            res.json({
+                "status":"success",
+                "message":"Dons added",
+                "data": newBook
+            })
+        })
+        // fields fields fields
+    });
+
+});
+
+app.get('/find/dons/:id',(req,res) => {
+    console.log('ok');
+    const sql = "SELECT SUM(montant) as TOTAL_COSTS FROM dons WHERE Project_id = "+req.params.id+" GROUP BY Project_id";
+    sequelize.query(sql, {
+        type: sequelize.QueryTypes.SELECT
+    }).then(book => {
+        console.log(book);
+        res.json(book[0]);
+    })
+})
 
 app.listen(port, () => console.log("book-rest-api run on "+baseUrl ))
