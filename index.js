@@ -419,7 +419,10 @@ app.get('/find/dons/:id',(req,res) => {
     sequelize.query(sql, {
         type: sequelize.QueryTypes.SELECT
     }).then(book => {
-        console.log(book);
+        console.log(book[0]);
+        if(book[0] == undefined ){
+            book[0] = {TOTAL_COSTS:'0'};
+        }
         res.json(book[0]);
     })
 });
