@@ -168,12 +168,12 @@ app.post('/project/add', [
     if (!errors.isEmpty()) {
         return res.status(200).json({ status: 'error', message:"Form error", data:null, errors: errors.mapped() });
     }
-    var dateString = req.body.end_date; // Oct 23
+        var dateString = req.body.end_date; // Oct 23
 
-    var dateParts = dateString.split("/");
+        var dateParts = dateString.split("/");
 
-// month is 0-based, that's why we need dataParts[1] - 1
-    var dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+    // month is 0-based, that's why we need dataParts[1] - 1
+        var dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
 
     console.log(dateObject);
 
@@ -209,6 +209,12 @@ app.post('/register',express.static('public'),(req,res) => {
     form.parse(req, function(err, fields, files) {
         console.log(fields);
         var password ;
+        var dateString =  fields.birthday[0];
+
+        var dateParts = dateString.split("/");
+
+        var dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+        console.log(dateObject);
         bcrypt.genSalt(10, (err, salt) => {
             bcrypt.hash(fields.password[0], salt, (err, hash) => {
                 console.log(err);
@@ -218,8 +224,9 @@ app.post('/register',express.static('public'),(req,res) => {
                     email: fields.username[0],
                     password: password,
                     pseudo:fields.pseudo[0],
-                    birthdate: fields.birthday[0]
+                    birthdate: dateObject
                 }).then(newBook => {
+                    console.log('ok');
                     res.json({
                         "status":"success",
                         "message":"Project added",
