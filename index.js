@@ -168,11 +168,19 @@ app.post('/project/add', [
     if (!errors.isEmpty()) {
         return res.status(200).json({ status: 'error', message:"Form error", data:null, errors: errors.mapped() });
     }
+    var dateString = req.body.end_date; // Oct 23
+
+    var dateParts = dateString.split("/");
+
+// month is 0-based, that's why we need dataParts[1] - 1
+    var dateObject = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+
+    console.log(dateObject);
 
     project.create({
         title: req.body.title,
         montant: req.body.montant,
-        end_date: req.body.end_date,
+        end_date: dateObject,
         id_user: req.body.id_user,
         description: req.body.description,
         picture: req.file === undefined ? "" : req.file.filename
@@ -183,116 +191,6 @@ app.post('/project/add', [
             "data": newBook
         })
     })
-})
-
-//Update operation
-app.post('/book/:isbn/update', [
-    //File upload (karena pakai multer, tempatkan di posisi pertama agar membaca multipar form-data)
-    upload.single('image'),
-
-    //Set form validation rule
-    check('isbn')
-        .isLength({ min: 5 })
-        .isNumeric()
-        .custom(value => {
-            return book.findOne({where: {isbn: value}}).then(b => {
-                if(!b){
-                    throw new Error('ISBN not found');
-                }            
-            })
-        }
-    ),
-    check('name')
-        .isLength({min: 2}),
-    check('year')
-        .isLength({min: 4, max: 4})
-        .isNumeric(),
-    check('author')
-        .isLength({min: 2}),
-    check('description')
-     .isLength({min: 10})
-
-],(req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({ status: 'error', message:"Form error", data:null, errors: errors.mapped() });
-    }
-
-    let prevImage = null;
-    book.findOne({where: {isbn: req.body.isbn}}).then(b => {
-        
-        let newThumbnail = '';
-        console.log("Req.file", req.file);
-
-
-        if(req.file === undefined || req.file.filename ===""){
-            let parts = b.image.split('/');            
-            newThumbnail = parts[parts.length - 1];
-        }else{
-            newThumbnail = req.file.filename;
-        }
-
-        console.log("newThumbnail", newThumbnail);
-        
-        const update = {
-            name: req.body.name,
-            isbn: req.body.isbn,
-            year: req.body.year,
-            author: req.body.author,
-            description: req.body.description,
-            image: newThumbnail
-        }
-
-        book.update(update,{where: {isbn: req.body.isbn}})
-            .then(affectedRow => {
-                return book.findOne({where: {isbn: req.body.isbn}})      
-            })
-            .then(b => {
-                res.json({
-                    "status": "success",
-                    "message": "Book updated",
-                    "data": b
-                })
-            })
-        })    
-})
-
-
-
-app.post('/book/:isbn/delete',[
-    //Set form validation rule
-    check('isbn')
-        .isLength({ min: 5 })
-        .isNumeric()
-        .custom(value => {
-            return book.findOne({where: {isbn: value}}).then(b => {
-                if(!b){
-                    throw new Error('ISBN not found');
-                }            
-            })
-        }
-    ),
-], (req, res) => {
-    book.destroy({where: {isbn: req.params.isbn}})
-        .then(affectedRow => {
-            if(affectedRow){
-                return {
-                    "status":"success",
-                    "message": "Book deleted",
-                    "data": null
-                } 
-            }
-
-            return {
-                "status":"error",
-                "message": "Failed",
-                "data": null
-            } 
-                
-        })
-        .then(r => {
-            res.json(r)
-        })
 })
 
 app.get('/pinjam', (req, res) => {
@@ -336,33 +234,7 @@ app.post('/register',express.static('public'),(req,res) => {
 
 })
 
-app.post('/pinjam',[
-    upload.single('image'),
-    //Set form validation rule
-    check('bookId')
-        .isNumeric(),
-    check('nama')
-        .isLength({min: 2}),
-    check('lamaPinjam')
-        .isNumeric()    
-], (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(200).json({ status: 'error', message:"Form error", data:null, errors: errors.mapped() });
-    }
 
-    pinjam.create({
-        nama: req.body.nama,
-        bookId: req.body.bookId,
-        lamaPinjam: req.body.lamaPinjam        
-    }).then(newBook => {
-        res.json({
-            "status":"success",
-            "message":"Book added",
-            "data": newBook
-        })
-    })
-})
 
 app.post('/login',(req,res) => {
     var form = new multiparty.Form();
@@ -427,4 +299,4 @@ app.get('/find/dons/:id',(req,res) => {
     })
 });
 
-app.listen(port, () => console.log("book-rest-api run on "+baseUrl ));
+app.listen(port, () => console.log("nfacto-raising-rest-api run on "+baseUrl ));
